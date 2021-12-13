@@ -126,6 +126,10 @@ const QUERIES = {
               modules(filter: {contains: "log4j-core"}) {
                 nextCursor
                 results {
+                  details {
+                    name
+                    host
+                  }
                   loadedModules {
                     name
                     version
@@ -148,6 +152,10 @@ const QUERIES = {
               modules(filter: {contains: "log4j-core"}, cursor: $cursor) {
                 nextCursor
                 results {
+                  details {
+                    name
+                    host
+                  }
                   loadedModules {
                     name
                     version
@@ -251,7 +259,12 @@ async function findServices(state) {
     }
     process.stdout.write(`\b\b\b done. Actual service count is ${Object.values(state.applications).length}.\n`);
 
-    if (! process.argv.includes('--fast-scan')) {
+    // We prefer findModulesByAccount() because it uses a more efficent API, and we've
+    //   found some cases where a service may not be returned by the entitySearch query.
+    // If you are mucking around in here and find a need to run a query per entity,
+    //   pass in the undocumented `--entity-scan` command-line arg and then you 
+    //   can do interesting things in findModulesByEntity().
+    if (process.argv.includes('--entity-scan')) {
         await findModulesByEntity(state);
     } else {
         await findModulesByAccount(state);
@@ -271,12 +284,12 @@ async function findModulesByEntity(state) {
     for (const application of Object.values(state.applications)) {
         try {
             var data = await nerdgraphQuery(state.apiKey, QUERIES.log4jmodulesInEntity, {entityGuid: application['guid']});
-            if (! (data && data['actor'] && data['actor']['entity'] && resultSet['actor']['entity']['applicationInstances'])) {
+            if (! (data && data['actor'] && data['actor']['entity'] && data['actor']['entity']['applicationInstances'])) {
               // we've seen issues with occasional api timeouts
               // if we failed to get a result try it one more time
               data = await nerdgraphQuery(state.apiKey, QUERIES.log4jmodulesInEntity, {entityGuid: application['guid']});
             }
-            if (data && data['actor'] && data['actor']['entity'] && resultSet['actor']['entity']['applicationInstances']) {
+            if (data && data['actor'] && data['actor']['entity'] && data['actor']['entity']['applicationInstances']) {
                 if (data['actor']['entity']['runningAgentVersions']) {
                     application['agentVersion'] = concatNoneOrMore(data['actor']['entity']['runningAgentVersions']['minVersion'], data['actor']['entity']['runningAgentVersions']['maxVersion']);
                 }
@@ -331,28 +344,42 @@ async function findModulesByEntity(state) {
         progress += 1;
         process.stdout.write(`\rScanning modules (account ${accountId} - ${progress} of ${accountCount})...        `);
         try {
-            var resultSet = await nerdgraphQuery(state.apiKey, QUERIES.getLog4jmodulesInAccount, {accountId});
+            var data = await nerdgraphQuery(state.apiKey, QUERIES.getLog4jmodulesInAccount, {accountId});
 
             var batch = 1;
-            while (resultSet && resultSet['actor'] && resultSet['actor']['account'] && resultSet['actor']['account']['agentEnvironment'] && resultSet['actor']['account']['agentEnvironment']['modules']) {
-                const results = resultSet['actor']['account']['agentEnvironment']['modules']['results'];
-                for (const result of results || []) {
+            while (data && data['actor'] && data['actor']['account'] && data['actor']['account']['agentEnvironment'] && data['actor']['account']['agentEnvironment']['modules']) {
+                const moduleResults = data['actor']['account']['agentEnvironment']['modules']['results'];
+                for (const result of moduleResults || []) {
                     if (result['loadedModules'].length > 0) {
                         const entityGuids = result['applicationGuids'];
+
                         for (const module of result['loadedModules']) {
                             for (const guid of entityGuids) {
+                                if (!state.applications[guid]) {
+                                  // There are rare cases where entitySearch doesn't return every application
+                                  // If we find one of those, construct an application record from the data we have here
+                                  const applicationId = getApplicationIdFromGuid(guid);
+                                  const {name, host} = result['details'];
+                                  state.applications[guid] = {
+                                    accountId,
+                                    guid,
+                                    name,
+                                    applicationId,
+                                    nrUrl: (applicationId) ? `https://rpm.newrelic.com/accounts/${accountId}/applications/${applicationId}/environment` : ''
+                                  }
+                                }
+
                                 const application = state.applications[guid];
-                                if (application) {
-                                    application['log4jJar'] = module['name'];
-                                    application['log4jJarVersion'] = module['version'];
-                                    if (module['attributes']) {
-                                        for (const attribute of module['attributes']) {
-                                            if (attribute['name'] === 'sha1Checksum' && attribute['value']) {
-                                                application['log4jJarSha1'] = attribute['value'];
-                                            }
-                                            if (attribute['name'] === 'sha512Checksum' && attribute['value']) {
-                                                application['log4jJarSha512'] = attribute['value'];
-                                            }
+
+                                application['log4jJar'] = module['name'];
+                                application['log4jJarVersion'] = module['version'];
+                                if (module['attributes']) {
+                                    for (const attribute of module['attributes']) {
+                                        if (attribute['name'] === 'sha1Checksum' && attribute['value']) {
+                                            application['log4jJarSha1'] = attribute['value'];
+                                        }
+                                        if (attribute['name'] === 'sha512Checksum' && attribute['value']) {
+                                            application['log4jJarSha512'] = attribute['value'];
                                         }
                                     }
                                 }
@@ -361,12 +388,12 @@ async function findModulesByEntity(state) {
                     }
                 }
         
-                const cursor = resultSet['actor']['account']['agentEnvironment']['modules']['nextCursor'];
+                const cursor = data['actor']['account']['agentEnvironment']['modules']['nextCursor'];
                 if (cursor) {
                     const glyphs = '|/-\\';
                     process.stdout.write(`\b\b\b ${glyphs.charAt(batch % glyphs.length)} `);
                     batch += 1;
-                    resultSet = await nerdgraphQuery(state.apiKey, QUERIES.getMoreLog4jmodulesInAccount, {accountId, cursor});
+                    data = await nerdgraphQuery(state.apiKey, QUERIES.getMoreLog4jmodulesInAccount, {accountId, cursor});
                 } else {
                     break;
                 }
@@ -526,6 +553,24 @@ function escapeCsv(s) {
         return s;
     }
 }
+
+/**
+ * Extract the APM applicationId from a New Relic entity guid.
+ * @param {in} guid 
+ * @returns applicationId, or undefined on failure
+ */
+function getApplicationIdFromGuid(guid) {
+  if (!guid) return undefined;
+
+  try {
+    const decodedString = atob(guid);
+    const splitString = decodedString.split("|");
+    return parseInt(splitString[3]);
+  } catch (err) {
+    return undefined;
+  }
+};
+
 
 // Kick off the application
 try {
