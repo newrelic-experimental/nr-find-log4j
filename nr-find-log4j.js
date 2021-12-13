@@ -251,10 +251,10 @@ async function findServices(state) {
     }
     process.stdout.write(`\b\b\b done. Actual service count is ${Object.values(state.applications).length}.\n`);
 
-    if (process.argv.includes('--fast-scan')) {
-        await findModulesByAccount(state);
+    if (process.argv.includes('--slow-scan')) {
+        await findModulesByEntity(state);
     } else {
-        await findModules(state);
+        await findModulesByAccount(state);
     }
 }
 
@@ -263,7 +263,7 @@ async function findServices(state) {
  * 
  * @param state - object containing `apiKey`, `accountIds`, and `applications` properties; `applications` values will be decorated with log4j-core jar metadata if found
  */
-async function findModules(state) {
+async function findModulesByEntity(state) {
     const entityCount = Object.values(state.applications).length;
     var progress = 0;
     process.stdout.write(`\rScanning modules (service ${progress} of ${entityCount})...      `);
