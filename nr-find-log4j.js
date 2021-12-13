@@ -8,11 +8,13 @@ Apache log4j2 versions < 2.15.0 are vulnerable to remote code execution
 and data exfiltration.
 
 This script will scan your New Relic account(s) for java services that
-*report* usage of log4j-core, and generate a manifest containing each
+report usage of log4j-core, and generate a manifest containing each
 suspect service with the version of log4j-core reported by New Relic APM.
 
-Note that this script may generate both false positives and false negatives.
-It is not intended to provide strong guarantees.
+Note that this script may generate false positives and false negatives.
+It is intended to assist your own investigation of potentially vulnerable
+systems, and does not provide any strong guarantees or proof of
+non-vulnerability.
 
 The script requires a New Relic *User* API key. To get your key,
 visit https://one.newrelic.com/launcher/api-keys-ui.launcher and either
