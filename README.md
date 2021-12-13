@@ -32,6 +32,20 @@ Command-line options:
 --all-services  include services that do NOT report presence of log4j-core
 ```
 
+## Auditing New Relic Java agent usage
+
+Per [Security Bulletin NR21-03](https://docs.newrelic.com/docs/security/new-relic-security/security-bulletins/security-bulletin-nr21-03/), New Relic Java agent versions 7.4.1 and 6.5.1 contain updated Log4j2 libraries. To find out what version of the New Relic Java APM agent your services are running, use NRDB's `ApplicationAgentContext` events.
+
+1. log into https://one.newrelic.com
+2. click "Query your data" then select the "Query builder" tab
+3. run this NRQL query against each of your accounts:
+
+```nrql
+SELECT latest(agent.version) FROM ApplicationAgentContext 
+WHERE agent.language = 'java' and agent.version not in ('7.4.1', '6.5.1') 
+SINCE 1 week ago facet entity.guid, appName limit max
+```
+
 ## Support
 
 New Relic has open-sourced this project. This project is provided AS-IS WITHOUT WARRANTY OR DEDICATED SUPPORT. Issues and contributions should be reported to the project here on GitHub.
