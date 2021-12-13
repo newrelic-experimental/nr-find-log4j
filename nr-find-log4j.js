@@ -251,7 +251,7 @@ async function findServices(state) {
     }
     process.stdout.write(`\b\b\b done. Actual service count is ${Object.values(state.applications).length}.\n`);
 
-    if (process.argv.includes('--slow-scan')) {
+    if (! process.argv.includes('--fast-scan')) {
         await findModulesByEntity(state);
     } else {
         await findModulesByAccount(state);
