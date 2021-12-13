@@ -270,8 +270,13 @@ async function findModulesByEntity(state) {
 
     for (const application of Object.values(state.applications)) {
         try {
-            const data = await nerdgraphQuery(state.apiKey, QUERIES.log4jmodulesInEntity, {entityGuid: application['guid']});
-            if (data) {
+            var data = await nerdgraphQuery(state.apiKey, QUERIES.log4jmodulesInEntity, {entityGuid: application['guid']});
+            if (! (data && data['actor'] && data['actor']['entity'] && resultSet['actor']['entity']['applicationInstances'])) {
+              // we've seen issues with occasional api timeouts
+              // if we failed to get a result try it one more time
+              data = await nerdgraphQuery(state.apiKey, QUERIES.log4jmodulesInEntity, {entityGuid: application['guid']});
+            }
+            if (data && data['actor'] && data['actor']['entity'] && resultSet['actor']['entity']['applicationInstances']) {
                 if (data['actor']['entity']['runningAgentVersions']) {
                     application['agentVersion'] = concatNoneOrMore(data['actor']['entity']['runningAgentVersions']['minVersion'], data['actor']['entity']['runningAgentVersions']['maxVersion']);
                 }
@@ -295,6 +300,8 @@ async function findModulesByEntity(state) {
                         }
                     }
                 }
+            } else {
+              process.stderr.write(`\nWarning: failed to get jar list for ${application['guid']} - please check this service manually at ${application['nrUrl']}\n`);
             }
         } catch (err) {
             process.stderr.write(`\nError fetching data for ${application['guid']}: ${err.toString()}\n`);
