@@ -30,9 +30,11 @@ Command-line options:
 
 Disclaimer
 
-This tool is provided by New Relic AS IS, with no warranty of suitability for
-any particular purpose. New Relic does not guarantee results to be complete
-or 100% accurate, and cannot provide specific remediation advice.
+This tool is provided by New Relic AS IS, without warranty of any kind.
+New Relic does not guarantee that the tool will: not cause any disruption
+to services or systems; provide results that are complete or 100% accurate;
+correct or cure any detected vulnerability; or provide specific remediation
+advice.
 
 `;
 
