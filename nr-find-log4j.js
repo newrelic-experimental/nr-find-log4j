@@ -433,7 +433,8 @@ async function nerdgraphQuery(apiKey, query, variables={}) {
         headers: {
             'Content-Type': 'application/json',
             'Content-Length': payload.length,
-            'API-Key': apiKey
+            'API-Key': apiKey,
+            'NewRelic-Requesting-Services': 'nr-find-log4j'
         }
     };
       
