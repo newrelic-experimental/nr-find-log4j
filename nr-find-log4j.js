@@ -259,12 +259,11 @@ async function findServices(state) {
     }
     process.stdout.write(`\b\b\b done. Actual service count is ${Object.values(state.applications).length}.\n`);
 
-    // We prefer findModulesByAccount() because it uses a more efficent API, and we've
-    //   found some cases where a service may not be returned by the entitySearch query.
-    // If you are mucking around in here and find a need to run a query per entity,
-    //   pass in the undocumented `--entity-scan` command-line arg and then you 
-    //   can do interesting things in findModulesByEntity().
-    if (process.argv.includes('--entity-scan')) {
+    // We prefer findModulesByAccount() because it uses a more efficent API, but we've
+    //   found some cases where we're not getting complete results.
+    // We'll default to an api call per java service until I can figure it out the disparity.
+    // Use the `--quick-scan` undocumented command line arg to use the account-level query.
+    if (! process.argv.includes('--quick-scan')) {
         await findModulesByEntity(state);
     } else {
         await findModulesByAccount(state);
