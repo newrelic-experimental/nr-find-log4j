@@ -36,6 +36,17 @@ Command-line options:
 
 ## Output
 
+The output includes all Java services found to contain log4j-core, the vulnerable library.
+
+Our suggested analysis is:
+
+1. Check the version of log4j-core. Versions 2.0 through < 2.15.0 are known vulnerable.
+2. Verify you have upgraded the New Relic `agentVersion` to a known-safe [Java agent release](https://docs.newrelic.com/docs/release-notes/agent-release-notes/java-release-notes/).
+3. Compare `examinedInstances` count on each service to the upgraded and mitigated instance counts to assess how many instances may still be vulnerable:
+   1. `upgradedInstances` indicates how many running instances have log4j-core ≥ 2.15. If all instances are "upgraded" then we did not detect a vulnerable version of the library.
+   2. `mitigatedInstances` indicates how many running instances have the `-Dlog4j2.formatMsgNoLookups=true` jvm argument applied.
+4. Use the `nrUrl` link to directly examine the service's runtime environment as reported by the Java agent
+
 The CSV and JSON files contain these fields:
 
 * `accountId`           New Relic account id containing the service

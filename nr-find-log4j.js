@@ -496,7 +496,7 @@ function writeResults(state) {
     }
 
     if (useCsv) {
-        const columns = ['accountId', 'applicationId', 'name', 'agentVersion', 'examinedInstances', 'upgradedInstances', 'mitigatedInstances', 'agentVersion', 'log4jJar', 'log4jJarVersion', 'log4jJarSha1', 'log4jJarSha512', 'nrUrl'];
+        const columns = ['accountId', 'applicationId', 'name', 'agentVersion', 'examinedInstances', 'upgradedInstances', 'mitigatedInstances', 'log4jJar', 'log4jJarVersion', 'log4jJarSha1', 'log4jJarSha512', 'nrUrl'];
         const outputFile = `log4j_scan_${state.region}_${fileTimestamp}.csv`;
         // DIY rather than depend on a csv module
         fs.writeFileSync(
