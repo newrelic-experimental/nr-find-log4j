@@ -429,10 +429,10 @@ function writeResults(state) {
     state.scanDurationSec = Math.ceil((state.scanCompleted - state.scanStarted) / 1000);
 
     process.stdout.write(`\nOK, scan took ${state.scanDurationSec} seconds. Found ${vulnerableApplications.length} services with log4j-core.\n`);
-    const fileTimestamp = (new Date()).toISOString();
+    const fileTimestamp = new Date().toISOString().replaceAll(":","_");
 
     if (useJson) {
-        const outputFile = `log4j_scan_${fileTimestamp.replace(":","")}.json`;
+        const outputFile = `log4j_scan_${fileTimestamp}.json`;
         fs.writeFileSync(
             outputFile,
             JSON.stringify((includeAllApplications) ? applications : vulnerableApplications, null, 2)
@@ -442,7 +442,7 @@ function writeResults(state) {
 
     if (useCsv) {
         const columns = ['accountId', 'applicationId', 'name', 'log4jJar', 'log4jJarVersion', 'log4jJarSha1', 'log4jJarSha512', 'nrUrl'];
-        const outputFile = `log4j_scan_${fileTimestamp.replace(":", "")}.csv`;
+        const outputFile = `log4j_scan_${fileTimestamp}.csv`;
         // DIY rather than depend on a csv module
         fs.writeFileSync(
             outputFile,
