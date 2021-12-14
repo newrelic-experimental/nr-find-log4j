@@ -429,7 +429,7 @@ function writeResults(state) {
     state.scanDurationSec = Math.ceil((state.scanCompleted - state.scanStarted) / 1000);
 
     process.stdout.write(`\nOK, scan took ${state.scanDurationSec} seconds. Found ${vulnerableApplications.length} services with log4j-core.\n`);
-    const fileTimestamp = new Date().toISOString().replaceAll(":","_");
+    const fileTimestamp = new Date().toISOString().replace(/\:/g, '');
 
     if (useJson) {
         const outputFile = `log4j_scan_${fileTimestamp}.json`;
