@@ -34,6 +34,34 @@ Command-line options:
 --all-services  include services that do NOT report presence of log4j-core
 ```
 
+## Output
+
+The output includes all Java services found to contain log4j-core, the vulnerable library.
+
+Our suggested analysis is:
+
+1. Check the version of log4j-core. Versions 2.0 through < 2.15.0 are known vulnerable.
+2. Verify you have upgraded the New Relic `agentVersion` to a known-safe [Java agent release](https://docs.newrelic.com/docs/release-notes/agent-release-notes/java-release-notes/).
+3. Compare `examinedInstances` count on each service to the upgraded and mitigated instance counts to assess how many instances may still be vulnerable:
+   1. `upgradedInstances` indicates how many running instances have log4j-core ≥ 2.15. If all instances are "upgraded" then we did not detect a vulnerable version of the library.
+   2. `mitigatedInstances` indicates how many running instances have the `-Dlog4j2.formatMsgNoLookups=true` jvm argument applied.
+4. Use the `nrUrl` link to directly examine the service's runtime environment as reported by the Java agent
+
+The CSV and JSON files contain these fields:
+
+* `accountId`           New Relic account id containing the service
+* `applicationId`       New Relic application id of the service
+* `name`                Display name of the service as seen in New Relic
+* `examinedInstances`   Number of runtime instances of the service that were examined
+* `upgradedInstances`   Number of examined instances that report using Log4j version 2.15+
+* `mitigatedInstances`  Number of examined instances that report using the `-Dlog4j2.formatMsgNoLookups=true` JVM argument mitigation
+* `agentVersion`        New Relic agent version detected in the service
+* `log4jJar`            Name of the log4j-core jar file detected in the service
+* `log4jJarVersion`     Version string of the log4j-core library detected in the service
+* `log4jJarSha1`        SHA1 hash of the log4j-core jar file
+* `log4jJarSha512`      SHA512 hash of the log4j-core jar file
+* `nrUrl`               Link to the New Relic UI to examine the service's environment data
+
 ## Auditing New Relic Java agent usage
 
 Per [Security Bulletin NR21-03](https://docs.newrelic.com/docs/security/new-relic-security/security-bulletins/security-bulletin-nr21-03/), New Relic Java agent versions 7.4.1 and 6.5.1 contain updated Log4j2 libraries. To find out what version of the New Relic Java APM agent your services are running, use NRDB's `ApplicationAgentContext` events.
