@@ -38,11 +38,17 @@ advice.
 
 `;
 
-const NERDGRAPH_URL = 'https://api.newrelic.com/graphql';
+const REGIONS = {
+    'us': 'https://api.newrelic.com/graphql',
+    'eu': 'https://api.eu.newrelic.com/graphql'
+};
+
+let NERDGRAPH_URL = REGIONS['us'];
 
 const STATE = {
     apiKey: undefined,
-    accountIds: undefined
+    accountIds: undefined,
+    region: 'us'
 };
 
 const QUERIES = {
@@ -173,6 +179,31 @@ const QUERIES = {
       }`
 };
 
+function requestRegion(state) {
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
+    rl.question(`What region shall we examine (options: ${Object.keys(REGIONS).join(' ')}; default: us)? `,
+        (region) => {
+            rl.close();
+            if (region) {
+                region = region.toLowerCase();
+                if (REGIONS[region]) {
+                    state.region = region;
+                    NERDGRAPH_URL = REGIONS[region];
+                } else {
+                    process.stdout.write(`\nPlease enter a valid region name, or just hit 'return' to default to the US region.\nValid options are: ${Object.keys(REGIONS).join(' ')}\n`);
+                    process.exit(2);
+                }
+            }
+            process.stdout.write(`API endpoint: ${NERDGRAPH_URL}\n`);
+
+            requestApiKey(state);
+        }
+    );
+}
+
 /**
  * Prompt the user to enter an API key from the console, then test the key by fetching the accessible accounts list.
  * 
@@ -185,7 +216,7 @@ function requestApiKey(state) {
         input: process.stdin,
         output: process.stdout
     });
-    rl.question("What is your New Relic User API Key? ",
+    rl.question("\nWhat is your New Relic User API Key? ",
         async (key) => {
             rl.close();
             // Track when we starterd scanning
@@ -429,10 +460,10 @@ function writeResults(state) {
     state.scanDurationSec = Math.ceil((state.scanCompleted - state.scanStarted) / 1000);
 
     process.stdout.write(`\nOK, scan took ${state.scanDurationSec} seconds. Found ${vulnerableApplications.length} services with log4j-core.\n`);
-    const fileTimestamp = new Date().toISOString().replace(/\:/g, '');
+    const fileTimestamp = new Date().toISOString().replace(/\:/g, '-');
 
     if (useJson) {
-        const outputFile = `log4j_scan_${fileTimestamp}.json`;
+        const outputFile = `log4j_scan_${state.region}_${fileTimestamp}.json`;
         fs.writeFileSync(
             outputFile,
             JSON.stringify((includeAllApplications) ? applications : vulnerableApplications, null, 2)
@@ -442,7 +473,7 @@ function writeResults(state) {
 
     if (useCsv) {
         const columns = ['accountId', 'applicationId', 'name', 'log4jJar', 'log4jJarVersion', 'log4jJarSha1', 'log4jJarSha512', 'nrUrl'];
-        const outputFile = `log4j_scan_${fileTimestamp}.csv`;
+        const outputFile = `log4j_scan_${state.region}_${fileTimestamp}.csv`;
         // DIY rather than depend on a csv module
         fs.writeFileSync(
             outputFile,
@@ -598,7 +629,7 @@ function getApplicationIdFromGuid(guid) {
 try {
     process.stdout.write(INTRO_TEXT);
 
-    requestApiKey(STATE);
+    requestRegion(STATE);
 } catch (err) {
     process.stderr.write(`Uncaught runtime error: ${err.toString()}\n`);
     process.exit(2);
