@@ -105,6 +105,10 @@ const QUERIES = {
               guid
               name
               applicationInstances {
+                environmentAttributes(filter: {equals: "JVM arguments"}) {
+                    attribute
+                    value
+                }
                 modules(filter: {contains: "log4j-core"}) {
                   name
                   version
@@ -319,11 +323,22 @@ async function findModulesByEntity(state) {
                     application['agentVersion'] = concatNoneOrMore(data['actor']['entity']['runningAgentVersions']['minVersion'], data['actor']['entity']['runningAgentVersions']['maxVersion']);
                 }
                 if (data['actor']['entity']['applicationInstances']) {
+                    let instanceCount = 0;
+                    let hasArgMitigationCount = 0;
+                    let upgradedInstanceCount = 0;
+
                     for (const instance of data['actor']['entity']['applicationInstances']) {
-                        if (instance['modules']) {
+                        if (instance['modules'] && instance['modules'].length > 0) {
+                            instanceCount += 1;
                             for (const module of instance['modules']) {
+                                const log4jVersion = module['version'];
                                 application['log4jJar'] = module['name'];
-                                application['log4jJarVersion'] = module['version'];
+                                application['log4jJarVersion'] = log4jVersion;
+                                if (log4jVersion.startsWith('2.15') || log4jVersion.startsWith('2.16')) {
+                                    upgradedInstanceCount += 1;
+                                } else {
+                                    console.log('non-upgraded instance ', module)
+                                }
                                 if (module['attributes']) {
                                     for (const attribute of module['attributes']) {
                                         if (attribute['name'] === 'sha1Checksum' && attribute['value']) {
@@ -336,7 +351,18 @@ async function findModulesByEntity(state) {
                                 }
                             }
                         }
+                        if (instance['environmentAttributes']) {
+                            for (const attr of instance['environmentAttributes']) {
+                                if (attr['value'] === '-Dlog4j2.formatMsgNoLookups=true') {
+                                    hasArgMitigationCount += 1;
+                                }
+                            }
+                        }
                     }
+
+                    application['examinedInstances'] = instanceCount;
+                    application['upgradedInstances'] = upgradedInstanceCount;
+                    application['mitigatedInstances'] = hasArgMitigationCount;
                 }
             } else {
               process.stderr.write(`\nWarning: failed to get jar list for ${application['guid']} - please check this service manually at ${application['nrUrl']}\n`);
@@ -472,7 +498,7 @@ function writeResults(state) {
     }
 
     if (useCsv) {
-        const columns = ['accountId', 'applicationId', 'name', 'agentVersion', 'log4jJar', 'log4jJarVersion', 'log4jJarSha1', 'log4jJarSha512', 'nrUrl'];
+        const columns = ['accountId', 'applicationId', 'name', 'examinedInstances', 'upgradedInstances', 'mitigatedInstances', 'agentVersion', 'log4jJar', 'log4jJarVersion', 'log4jJarSha1', 'log4jJarSha512', 'nrUrl'];
         const outputFile = `log4j_scan_${state.region}_${fileTimestamp}.csv`;
         // DIY rather than depend on a csv module
         fs.writeFileSync(
