@@ -432,7 +432,7 @@ function writeResults(state) {
     const fileTimestamp = (new Date()).toISOString();
 
     if (useJson) {
-        const outputFile = `log4j_scan_${fileTimestamp}.json`;
+        const outputFile = `log4j_scan_${fileTimestamp.replace(":","")}.json`;
         fs.writeFileSync(
             outputFile,
             JSON.stringify((includeAllApplications) ? applications : vulnerableApplications, null, 2)
@@ -442,7 +442,7 @@ function writeResults(state) {
 
     if (useCsv) {
         const columns = ['accountId', 'applicationId', 'name', 'log4jJar', 'log4jJarVersion', 'log4jJarSha1', 'log4jJarSha512', 'nrUrl'];
-        const outputFile = `log4j_scan_${fileTimestamp}.csv`;
+        const outputFile = `log4j_scan_${fileTimestamp.replace(":", "")}.csv`;
         // DIY rather than depend on a csv module
         fs.writeFileSync(
             outputFile,
