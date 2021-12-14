@@ -346,19 +346,24 @@ async function findModulesByEntity(state) {
                 const moduleResults = data['actor']['account']['agentEnvironment']['modules']['results'];
                 for (const result of moduleResults || []) {
                     if (result['loadedModules'].length > 0) {
+                        const {name, host} = result['details'];
+                        const appName = name.replace(/^java:/, '').replace(/:\d+$/, '');
                         const entityGuids = result['applicationGuids'];
 
                         for (const module of result['loadedModules']) {
+                            if (!entityGuids || entityGuids.length < 1) {
+                                process.stdout.write(`\nWarning: result w/out a guid found:\t${appName}\t${host}\t${module['name']}\t${module['version']}      `);
+                            }
+
                             for (const guid of entityGuids) {
                                 if (!state.applications[guid]) {
                                   // There are rare cases where entitySearch doesn't return every application
                                   // If we find one of those, construct an application record from the data we have here
                                   const applicationId = getApplicationIdFromGuid(guid);
-                                  const {name, host} = result['details'];
                                   state.applications[guid] = {
                                     accountId,
                                     guid,
-                                    name,
+                                    name: appName,
                                     applicationId,
                                     nrUrl: (applicationId) ? `https://rpm.newrelic.com/accounts/${accountId}/applications/${applicationId}/environment` : ''
                                   }
