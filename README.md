@@ -22,6 +22,8 @@ To get your New Relic API key, visit the
 and either copy an existing USER key (use the 'Copy key' action in the '...' menu)
 or create a new key with the *Create a key* button.
 
+Note: Even though user API keys are associated with an account, this script will be able to scan any account your user is authorized to access. You should not need to create an API key per account.
+
 Executing this script will take some time if you have many java services.
 
 Command-line options:
