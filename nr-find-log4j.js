@@ -283,12 +283,7 @@ async function findModulesByEntity(state) {
 
     for (const application of Object.values(state.applications)) {
         try {
-            var data = await nerdgraphQuery(state.apiKey, QUERIES.log4jmodulesInEntity, {entityGuid: application['guid']});
-            if (! (data && data['actor'] && data['actor']['entity'] && data['actor']['entity']['applicationInstances'])) {
-              // we've seen issues with occasional api timeouts
-              // if we failed to get a result try it one more time
-              data = await nerdgraphQuery(state.apiKey, QUERIES.log4jmodulesInEntity, {entityGuid: application['guid']});
-            }
+            const data = await nerdgraphQuery(state.apiKey, QUERIES.log4jmodulesInEntity, {entityGuid: application['guid']});
             if (data && data['actor'] && data['actor']['entity'] && data['actor']['entity']['applicationInstances']) {
                 if (data['actor']['entity']['runningAgentVersions']) {
                     application['agentVersion'] = concatNoneOrMore(data['actor']['entity']['runningAgentVersions']['minVersion'], data['actor']['entity']['runningAgentVersions']['maxVersion']);
@@ -462,39 +457,10 @@ function writeResults(state) {
  */
 async function nerdgraphQuery(apiKey, query, variables={}) {
     const payload = JSON.stringify({query, variables});
-    const options = {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': payload.length,
-            'API-Key': apiKey,
-            'NewRelic-Requesting-Services': 'nr-find-log4j'
-        }
-    };
       
     try {
-        let prms = new Promise((resolve, reject) => {
-            const req = https.request(NERDGRAPH_URL, options, (res) => {
-                let body = '';
-    
-                res.on('data', (chunk) => {
-                    body += chunk;
-                });
-    
-                res.on('end', () => {
-                    resolve(JSON.parse(body));
-                });
-            });
-    
-            req.on('error', (err) => {
-                reject(err);
-            });
-    
-            req.write(payload)
-            req.end();
-        });
-    
-        const response = await prms;
+        var prms = buildRequestPromise(apiKey, payload);
+        var response = await prms;
         if (response.errors) {
             process.stderr.write(`\nError returned from API: ${JSON.stringify(response.errors)}\n`);
         }
@@ -502,10 +468,62 @@ async function nerdgraphQuery(apiKey, query, variables={}) {
             return response.data;
         }
     } catch (err) {
-      process.stderr.write(`\nException processing API call: ${err.toString()}\n`);
+        process.stderr.write(`\nException processing API call: ${err.toString()}\n`);
     }
 
-    return undefined;
+    // We hit occasional networking issues that lead to timeouts or other transient issues
+    // So, if the query failed try it again one time
+    try {
+      var prms = buildRequestPromise(apiKey, payload);
+      var response = await prms;
+      if (response.data) {
+          return response.data;
+      }
+  } catch (err) {
+      process.stderr.write(`\nException processing API call: ${err.toString()}\n`);
+  }
+
+  return undefined;
+}
+
+/**
+ * Build a promise that will send the provided payload to nerdgraph and resolve to the response body.
+ * 
+ * @param apiKey - New Relic User API key for executing a nerdgraph query
+ * @param payload - string containing the json-encoded graphql payload
+ * @returns a Promise that, when resolved, will execute the requests and return the deserialized json response
+ */
+function buildRequestPromise(apiKey, payload) {
+  const options = {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': payload.length,
+        'API-Key': apiKey,
+        'NewRelic-Requesting-Services': 'nr-find-log4j'
+    }
+  };
+
+  return new Promise((resolve, reject) => {
+    const req = https.request(NERDGRAPH_URL, options, (res) => {
+        let body = '';
+
+        res.on('data', (chunk) => {
+            body += chunk;
+        });
+
+        res.on('end', () => {
+            resolve(JSON.parse(body));
+        });
+    });
+
+    req.on('error', (err) => {
+        reject(err);
+    });
+
+    req.write(payload)
+    req.end();
+  });
 }
 
 /**
