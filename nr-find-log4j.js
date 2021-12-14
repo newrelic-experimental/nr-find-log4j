@@ -336,8 +336,6 @@ async function findModulesByEntity(state) {
                                 application['log4jJarVersion'] = log4jVersion;
                                 if (log4jVersion.startsWith('2.15') || log4jVersion.startsWith('2.16')) {
                                     upgradedInstanceCount += 1;
-                                } else {
-                                    console.log('non-upgraded instance ', module)
                                 }
                                 if (module['attributes']) {
                                     for (const attribute of module['attributes']) {
