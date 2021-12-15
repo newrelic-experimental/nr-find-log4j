@@ -1,6 +1,6 @@
 [![New Relic Experimental header](https://github.com/newrelic/opensource-website/raw/master/src/images/categories/Experimental.png)](https://opensource.newrelic.com/oss-category/#new-relic-experimental)
 
-Per [CVE-2021-44228](https://nvd.nist.gov/vuln/detail/CVE-2021-44228), Apache log4j2 versions < 2.15.0 are vulnerable to remote code execution and data exfiltration.
+Per [CVE-2021-44228](https://nvd.nist.gov/vuln/detail/CVE-2021-44228) and [CVE-2021-45046](https://nvd.nist.gov/vuln/detail/CVE-2021-45046), Apache log4j2 versions < 2.16.0 (except 2.12.2) are vulnerable to remote code execution and potential data exfiltration.
 
 This script will scan your New Relic account(s) for java services that *report* usage of log4j-core, and generate a manifest containing each suspect service with the version of log4j-core reported by New Relic APM.
 
@@ -40,10 +40,10 @@ The output includes all Java services found to contain log4j-core, the vulnerabl
 
 Our suggested analysis is:
 
-1. Check the version of log4j-core. Versions 2.0 through < 2.15.0 are known vulnerable.
+1. Check the version of log4j-core. Versions 2.0 through < 2.16.0 (except 2.12.2) are known vulnerable.
 2. Verify you have upgraded the New Relic `agentVersion` to a known-safe [Java agent release](https://docs.newrelic.com/docs/release-notes/agent-release-notes/java-release-notes/).
 3. Compare `examinedInstances` count on each service to the upgraded and mitigated instance counts to assess how many instances may still be vulnerable:
-   1. `upgradedInstances` indicates how many running instances have log4j-core ≥ 2.15. If all instances are "upgraded" then we did not detect a vulnerable version of the library.
+   1. `upgradedInstances` indicates how many running instances have log4j-core ≥ 2.16 or 2.12.2. If all instances are "upgraded" then we did not detect a vulnerable version of the library.
    2. `mitigatedInstances` indicates how many running instances have the `-Dlog4j2.formatMsgNoLookups=true` jvm argument applied.
 4. Use the `nrUrl` link to directly examine the service's runtime environment as reported by the Java agent
 
@@ -53,7 +53,7 @@ The CSV and JSON files contain these fields:
 * `applicationId`       New Relic application id of the service
 * `name`                Display name of the service as seen in New Relic
 * `examinedInstances`   Number of runtime instances of the service that were examined
-* `upgradedInstances`   Number of examined instances that report using Log4j version 2.15+
+* `upgradedInstances`   Number of examined instances that report using Log4j version 2.12.2 or 2.16+
 * `mitigatedInstances`  Number of examined instances that report using the `-Dlog4j2.formatMsgNoLookups=true` JVM argument mitigation
 * `agentVersion`        New Relic agent version detected in the service
 * `log4jJar`            Name of the log4j-core jar file detected in the service
