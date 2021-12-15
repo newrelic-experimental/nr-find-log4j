@@ -350,10 +350,8 @@ async function findModulesByEntity(state) {
                             }
                         }
                         if (instance['environmentAttributes']) {
-                            for (const attr of instance['environmentAttributes']) {
-                                if (attr['value'] === '-Dlog4j2.formatMsgNoLookups=true') {
-                                    hasArgMitigationCount += 1;
-                                }
+                            if (instance['environmentAttributes'].find(attr => attr['value'] === '-Dlog4j2.formatMsgNoLookups=true')) {
+                                hasArgMitigationCount += 1;
                             }
                         }
                     }
