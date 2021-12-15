@@ -4,7 +4,7 @@ const fs = require('fs');
 
 const INTRO_TEXT = `
 Per CVE-2021-44228 ( https://nvd.nist.gov/vuln/detail/CVE-2021-44228 ),
-Apache log4j2 versions < 2.15.0 are vulnerable to remote code execution
+Apache log4j2 versions < 2.16.0 are vulnerable to remote code execution
 and data exfiltration.
 
 This script will scan your New Relic account(s) for java services that
@@ -334,7 +334,7 @@ async function findModulesByEntity(state) {
                                 const log4jVersion = module['version'];
                                 application['log4jJar'] = module['name'];
                                 application['log4jJarVersion'] = log4jVersion;
-                                if (log4jVersion.startsWith('2.15') || log4jVersion.startsWith('2.16')) {
+                                if (log4jVersion.startsWith('2.16') || log4jVersion.startsWith('2.16')) {
                                     upgradedInstanceCount += 1;
                                 }
                                 if (module['attributes']) {
