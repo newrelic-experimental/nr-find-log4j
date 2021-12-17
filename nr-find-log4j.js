@@ -52,11 +52,14 @@ certificate, which can cause Node.js requests to the New Relic API to fail.
 
 CAUTION: Someone could be maliciously intercepting your network traffic.
 
-If you're sure this is a trusted proxy, you can work around this issue:
-1. Set the NODE_EXTRA_CA_CERTS environment variable to reference a PEM file
-containing your proxy's certificate chain:
+If you're sure this is a trusted proxy, you can work around this issue
+in two ways:
+
+1. Recommended: Set NODE_EXTRA_CA_CERTS environment variable to reference
+a PEM file containing your proxy's certificate chain:
 \tNODE_EXTRA_CA_CERTS=proxy-ca-root-cert.pem node nr-find-log4j.js
-2. Use the *unadvisable* NODE_TLS_REJECT_UNAUTHORIZED environment variable to
+
+2. Unadvisable: Set NODE_TLS_REJECT_UNAUTHORIZED=0 environment variable to
 disable SSL certificate validation.
 
 See the Node.js docs for help: https://nodejs.org/api/cli.html
