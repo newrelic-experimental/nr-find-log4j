@@ -46,6 +46,27 @@ const REGIONS = {
 
 let NERDGRAPH_URL = REGIONS['us'];
 
+const CERT_ERROR_HELP = `
+
+Uh oh, I think you're behind an HTTPS proxy with a self-signed or internal
+certificate, which can cause Node.js requests to the New Relic API to fail.
+
+CAUTION: Someone could be maliciously intercepting your network traffic.
+
+If you're sure this is a trusted proxy, you can work around this issue
+in two ways:
+
+1. Recommended: Set NODE_EXTRA_CA_CERTS environment variable to reference
+a PEM file containing your proxy's certificate chain:
+\tNODE_EXTRA_CA_CERTS=proxy-ca-root-cert.pem node nr-find-log4j.js
+
+2. Unadvisable: Set NODE_TLS_REJECT_UNAUTHORIZED=0 environment variable to
+disable SSL certificate validation.
+
+See the Node.js docs for help: https://nodejs.org/api/cli.html
+
+`;
+
 const STATE = {
     apiKey: undefined,
     accountIds: undefined,
@@ -515,7 +536,7 @@ function writeResults(state) {
  */
 async function nerdgraphQuery(apiKey, query, variables={}) {
     const payload = JSON.stringify({query, variables});
-      
+
     try {
         var prms = buildRequestPromise(apiKey, payload);
         var response = await prms;
@@ -526,7 +547,7 @@ async function nerdgraphQuery(apiKey, query, variables={}) {
             return response.data;
         }
     } catch (err) {
-        process.stderr.write(`\nException processing API call: ${err.toString()}\n`);
+        handleNetworkError(err);
     }
 
     // We hit occasional networking issues that lead to timeouts or other transient issues
@@ -537,11 +558,35 @@ async function nerdgraphQuery(apiKey, query, variables={}) {
       if (response.data) {
           return response.data;
       }
-  } catch (err) {
-      process.stderr.write(`\nException processing API call: ${err.toString()}\n`);
-  }
+    } catch (err) {
+        handleNetworkError(err);
+    }
 
   return undefined;
+}
+
+/**
+ * Figure out what to do with an error thrown by an https request.
+ * 
+ * If err suggests the issue is a certificate error from a HTTPS proxy, then print troubleshooting info and exit.
+ * Otherwise, print the error string and continue.
+ * 
+ * @param err - the Error thrown by https.request
+ */
+function handleNetworkError(err) {
+  const errString = err.toString();
+  // check for signs that Node is rejecting a HTTPS proxy with a self-signed cert
+  //   Per https://github.com/nodejs/node/blob/master/deps/openssl/openssl/include/openssl/x509_vfy.h.in#L224-L225
+  //   and https://github.com/nodejs/node/blob/master/deps/openssl/openssl/crypto/x509/x509_txt.c#L60-L63
+  //   err.code == 18 is X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT
+  //   err.code == 19 is X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN
+  if (err.code === 18 || err.code === 19 || errString.includes("self signed certificate")) {
+    process.stderr.write(CERT_ERROR_HELP);
+    process.exit(5);
+  }
+  else {
+    process.stderr.write(`\nException processing API call: ${errString}\n`);
+  }
 }
 
 /**
