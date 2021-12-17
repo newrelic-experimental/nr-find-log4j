@@ -50,7 +50,9 @@ const CERT_ERROR_HELP = `
 Uh oh, I think you're behind an HTTPS proxy with a self-signed or internal
 certificate, which can cause Node.js requests to the New Relic API to fail.
 
-You can work around this issue in two ways:
+CAUTION: Someone could be maliciously intercepting your network traffic.
+
+If you're sure this is a trusted proxy, you can work around this issue:
 1. Set the NODE_EXTRA_CA_CERTS environment variable to reference a PEM file
 containing your proxy's certificate chain:
 \tNODE_EXTRA_CA_CERTS=proxy-ca-root-cert.pem node nr-find-log4j.js
