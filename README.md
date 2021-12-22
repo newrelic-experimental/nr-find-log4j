@@ -64,7 +64,7 @@ The CSV and JSON files contain these fields:
 
 ## Auditing New Relic Java agent usage
 
-Per [Security Bulletin NR21-03](https://docs.newrelic.com/docs/security/new-relic-security/security-bulletins/security-bulletin-nr21-03/), New Relic Java agent versions 7.4.1 and 6.5.1 contain updated Log4j2 libraries. To find out what version of the New Relic Java APM agent your services are running, use NRDB's `ApplicationAgentContext` events.
+Per [Security Bulletin NR21-03](https://docs.newrelic.com/docs/security/new-relic-security/security-bulletins/security-bulletin-nr21-03/), New Relic Java agent versions 7.4.2+ and 6.5.2+ contain updated Log4j2 libraries. To find out what version of the New Relic Java APM agent your services are running, use NRDB's `ApplicationAgentContext` events.
 
 1. log into https://one.newrelic.com
 2. click "Query your data" then select the "Query builder" tab
@@ -72,9 +72,21 @@ Per [Security Bulletin NR21-03](https://docs.newrelic.com/docs/security/new-reli
 
 ```nrql
 SELECT latest(agent.version) FROM ApplicationAgentContext 
-WHERE agent.language = 'java' and agent.version not in ('7.4.1', '6.5.1') 
-SINCE 1 week ago facet entity.guid, appName limit max
+WHERE agent.language = 'java' AND agent.version NOT RLIKE r'([7-9]\.[4-9]\.|6\.[5-9]\.)[2-9]|[1-9]\d+'
+SINCE 1 WEEK AGO FACET entity.guid, appName LIMIT MAX
 ```
+
+The following query can also help gauge your percentage of agent reportings that resolve CVE-2021-44228:
+
+```nrql
+SELECT percentage(uniqueCount(agentHostname), WHERE apmAgentVersion RLIKE r'([7-9]\.[4-9]\.|6\.[5-9]\.)[2-9]|[1-9]\d+') AS 'Fixed Percentage', uniqueCount(agentHostname) as 'Total'
+FROM NrDailyUsage 
+WHERE apmLanguage = 'java'
+FACET consumingAccountName
+SINCE 1 DAY AGO LIMIT MAX
+```
+
+_This is [a daily sample](https://docs.newrelic.com/attribute-dictionary/?event=NrDailyUsage), therefore changes may take up to a day to reflect in this reporting._
 
 ## Support
 
