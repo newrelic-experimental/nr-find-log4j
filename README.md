@@ -6,7 +6,39 @@ This script will scan your New Relic account(s) for java services that *report* 
 
 Note that this script may generate false positives and false negatives. It is intended to assist your own investigation of potentially vulnerable systems, and does not provide any strong guarantees or proof of non-vulnerability.
 
-## Usage
+## Generic library search with nr-find-lib.js
+
+Due to popular demand, we've added general-purpose library discovery.
+
+In addition to `nr-find-log4j.js`, this repo now includes `nr-find-lib.js` as well!
+
+Usage is the same as with the log4j tool (See below). This script also prompts you for a library name and audits all running services for evidence of use.
+
+```sh
+node nr-find-lib.js
+```
+
+Command-line options:
+
+```sh
+--csv           output findings in CSV format (default)
+--json          output findings in JSON format
+```
+
+The CSV and JSON output files contain these fields:
+
+* `accountId`           New Relic account id containing the service
+* `applicationId`       New Relic application id of the service
+* `name`                Display name of the service as seen in New Relic
+* `examinedInstances`   Number of runtime instances of the service that were examined
+* `agentVersion`        New Relic agent version detected in the service
+* `library`            Name of the log4j-core jar file detected in the service
+* `libraryVersion`     Version string of the log4j-core library detected in the service
+* `librarySha1`        SHA1 hash of the log4j-core jar file
+* `librarySha512`      SHA512 hash of the log4j-core jar file
+* `nrUrl`               Link to the New Relic UI to examine the service's environment data
+
+## Using nr-find-log4j.js
 
 ```sh
 node nr-find-log4j.js
@@ -24,7 +56,7 @@ or create a new key with the *Create a key* button.
 
 Note: Even though user API keys are associated with an account, this script will be able to scan any account your user is authorized to access. You should not need to create an API key per account.
 
-Executing this script will take some time if you have many java services.
+Executing this script will take some time if you have many services.
 
 Command-line options:
 
