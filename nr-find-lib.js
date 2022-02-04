@@ -52,7 +52,7 @@ in two ways:
 
 1. Recommended: Set NODE_EXTRA_CA_CERTS environment variable to reference
 a PEM file containing your proxy's certificate chain:
-\tNODE_EXTRA_CA_CERTS=proxy-ca-root-cert.pem node nr-find-log4j.js
+\tNODE_EXTRA_CA_CERTS=proxy-ca-root-cert.pem node nr-find-lib.js
 
 2. Unadvisable: Set NODE_TLS_REJECT_UNAUTHORIZED=0 environment variable to
 disable SSL certificate validation.
@@ -509,7 +509,7 @@ function writeResults(state) {
     state.scanCompleted = Date.now();
     state.scanDurationSec = Math.ceil((state.scanCompleted - state.scanStarted) / 1000);
 
-    process.stdout.write(`\nOK, scan took ${state.scanDurationSec} seconds. Found ${vulnerableApplications.length} services with log4j-core.\n`);
+    process.stdout.write(`\nOK, scan took ${state.scanDurationSec} seconds. Found ${vulnerableApplications.length} services with ${state.libraryName}.\n`);
     const fileTimestamp = new Date().toISOString().replace(/\:/g, '-');
 
     if (useJson) {
